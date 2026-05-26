@@ -23,7 +23,7 @@
             --redirect-url: "https://wa.me/5553981021909"; /* ← WhatsApp */
             /* ─────────────────────────── */
 
-            --cta-time-ms: 278000; /* 4 min 38 s — 5 s antes do fim */
+            --cta-time-ms: 220000; /* 3 min 40 s */
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -355,7 +355,7 @@
        ═══════════════════════════════════════════════════════════ */
     const VIDEO_ID    = 'KafPt_O_LD0';          // ← ID do vídeo do YouTube
     const REDIRECT    = 'https://wa.me/5553981021909?text=Assisti%20o%20v%C3%ADdeo%2C%20e%20quero%20acessar%20a%20plataforma.%20pelo%20computador.'; // ← WhatsApp com mensagem pronta
-    const CTA_SECOND  = 278;                     // 5 s antes do fim (4 min 43 s = 283 s)
+    const CTA_SECOND  = 220;                     // 3 min 40 s
     /* ═══════════════════════════════════════════════════════════ */
 
     let player;
@@ -416,25 +416,15 @@
         scheduleCTA();
     }
 
-    /* ── Fake progress bar ──────────────────────────────────────
-       Easing: fast at the start, slows toward 95%.
-       Formula: progress = 95 * (1 - e^(-k*t)) capped at 95.
-       CTA reveal forces it to 100 when the button appears.
-    ─────────────────────────────────────────────────────────── */
-    const TOTAL_DURATION = 340;   // slightly longer than CTA_SECOND for natural feel
-    const K              = 0.012; // decay constant — lower = slower saturation
-
-    function easeProgress(elapsed) {
-        const raw = 95 * (1 - Math.exp(-K * elapsed));
-        return Math.min(raw, 95);
-    }
+    /* ── Barra de progresso linear baseada na duração real do vídeo ── */
+    const VIDEO_DURATION = 244;   // 4 min 04 s — duração real do vídeo
 
     let elapsedSec = 0;
 
     function startFakeProgress() {
         progressInterval = setInterval(() => {
             elapsedSec += 0.5;
-            const pct = easeProgress(elapsedSec);
+            const pct = Math.min((elapsedSec / VIDEO_DURATION) * 100, 99);
             setProgressUI(pct);
         }, 500);
     }
@@ -452,16 +442,17 @@
     }
 
     function showCTA() {
-        /* Snap progress to 100% */
-        clearInterval(progressInterval);
-        setProgressUI(100);
-        document.querySelector('.progress-label').textContent = 'Acesso liberado!';
-
-        /* Reveal CTA */
+        /* Revela o botão CTA aos 3:40 — barra continua até 100% no fim do vídeo */
         document.getElementById('cta-wrap').classList.add('visible');
-
-        /* Update link with the redirect URL */
         document.getElementById('ctaBtn').href = REDIRECT;
+
+        /* Agenda barra chegar a 100% quando o vídeo terminar (4:04) */
+        const remaining = (VIDEO_DURATION - CTA_SECOND) * 1000;
+        setTimeout(() => {
+            clearInterval(progressInterval);
+            setProgressUI(100);
+            document.querySelector('.progress-label').textContent = 'Acesso liberado!';
+        }, remaining);
     }
 
     /* ── Prevent right-click context menu on the video area ── */
